@@ -6,29 +6,32 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 import numpy as np
 from sklearn import metrics
-from dataset import CustomDataset
 from torch.nn import CrossEntropyLoss
 from calc_measures import compute_measures, print_measures
+from dataset import CustomDataset
+from cross_bert import NewsClassifier
 
-data_path = 'data\\train.csv'
+# data_path = '..\\data\\afndet_sw.csv'
+data_path = '..\\data\\afndet.csv'
 data = pd.read_csv(data_path)
 
-texts = data['text'].tolist()
-labels = data['label'].tolist()
+texts = data['News'].tolist()
+labels = data['Label'].tolist()
 
+tokenizer = BertTokenizer.from_pretrained('bert-base-cased')
 train_texts, test_texts, train_labels, test_labels = train_test_split(texts, labels, test_size=0.2, random_state=42)
-train_dataset = CustomDataset(train_texts, train_labels)
-test_dataset = CustomDataset(test_texts, test_labels)
+train_dataset = CustomDataset(train_texts, train_labels, tokenizer=tokenizer)
+test_dataset = CustomDataset(test_texts, test_labels, tokenizer=tokenizer)
 
-# Using all the training data
+# Using all the training data 
 # train_dataset = CustomDataset(texts, labels)
 
-model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2)
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+# model = BertForSequenceClassification.from_pretrained("bert-base-multilingual-cased", num_labels=2)
+# tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 
 # model_path = "e:\\nlp_projects\\"
 # model = torch.load(model_path)
-
+model = NewsClassifier('bert-base-cased', num_labels=2)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Device', device)
 model.to(device)
@@ -47,6 +50,7 @@ train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
 criterion = CrossEntropyLoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
 
 epochs = 10
 start = time.time()
@@ -63,7 +67,9 @@ for epoch in range(epochs):
         train_cur_labels.extend(labels.cpu().numpy())
 
         optimizer.zero_grad()
-        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+        # TODO: Modify different inputs for the different models
+        outputs = model(input_ids, attention_mask=attention_mask)
+        # outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
 
         loss = outputs.loss
         train_curr_loss = criterion(outputs.logits, labels)
@@ -114,3 +120,6 @@ for epoch in range(epochs):
 end = time.time()
 elapsed = end - start
 print(f"Time elapsed {elapsed/60:.2f} min")
+# Saving the model
+PATH1 = "..\\data\\afnsw_crossbert.pt"
+torch.save(model, PATH1)
