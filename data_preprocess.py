@@ -2,8 +2,10 @@ import re
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import numpy as np
+from deep_translator import GoogleTranslator
 
-df = pd.read_csv('data//africa_news_tweets.csv')
+# df = pd.read_csv('data//africa_news_tweets.csv')
+df = pd.read_csv('data/afndet.csv')
 print(df.head())
 # print(df['Label'].value_counts())
 # print(df.info())
@@ -28,9 +30,12 @@ def preprocessing(text):
     # Remove urls
     text = re.sub(r'http\S+', '', text)
     text = text.lower()
-    return text
+    translated_text = GoogleTranslator(source='en', target='sw').translate(text)
+    print('translated text', translated_text)
+    return translated_text
 
+print('starrt')
 df.loc[:, "News"] = df['News'].apply(preprocessing)
 print(df.head(10))
 
-df.to_csv('afndet.csv', index=False)
+df.to_csv('data//afndet_sw.csv', index=False)
